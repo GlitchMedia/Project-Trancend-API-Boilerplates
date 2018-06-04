@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<!-- 
+	Trancend API integration boilerplate.
+	This is used to demonstrate the API integration using local storage and client-side only scripting.
+	The only external library that was used is jQuery.
+
+	author Glitch Media SRL
+
+	************************************************************************************
+	* Attention! Nothing in this boilerplate is optimised as it is ment as an example! *
+	* You can do your optimization at your own discretion! 							   *
+	************************************************************************************
+ -->
+<html>
+	<head>
+		<title>Project Trancend Member API integration boilerplate</title>
+		<meta charset="utf-8" />
+		<meta name="author" content="Glitch Media" />
+	</head>
+	<body>
+		<div id="user_login">
+			<h1>Please login</h1>
+			<!-- User not logged in, showing login form -->
+			<label>Username</label>
+			<input type="text" name="text" id="username" />
+
+			<label>Password</label>
+			<input type="password" name="text" id="password" />
+			<button onclick="login()">Log In</button>
+		</div>
+		<div id="user_logged" style="display: none">
+			<!-- User data -->
+			<h1 id="user"></h1>
+
+			<!-- User logged in, showing other data -->
+			<button onclick="logout()">Log out</button>
+
+			<!-- Booking history -->
+			<h2>My bookings</h2>
+			<table>
+				<thead>
+					<tr>
+						<th>
+							Class name
+						</th>
+						<th>
+							Status
+						</th>
+						<th>
+							Cancel
+						</th>
+					</tr>
+				</thead>
+				<tbody id="history"></tbody>
+			</table>
+			<!-- END Booking history -->
+
+			<hr />
+			
+			<!-- Subscription history -->
+			<h2>My subscriptions</h2>
+			<table>
+				<thead>
+					<tr>
+						<th>
+							Subscription name
+						</th>
+						<th>
+							Availability
+						</th>
+					</tr>
+				</thead>
+				<tbody id="subscriptions"></tbody>
+			</table>
+			<!-- END Subscription history -->
+			
+			<hr />
+			
+			<!-- Book class -->
+			<div id="book_class">
+				<h2>Book your place at a class</h2>
+				<label>Choose a class</label>
+				<select id="class_id" onchange="bookClass()"></select>
+			</div>
+			<!-- END Book class -->
+		</div>
+		
+		<!-- Book class form -->
+		<div id="book_class_form" style="display: none">
+			<h3>Book the class place</h3>
+			<!-- Class details -->
+			<table>
+				<thead>
+					<th>Class name</th>
+					<th>Class date</th>
+				</thead>
+				<tbody>
+					<tr>
+						<td id="class_name"></td>
+						<td id="class_date"></td>
+					</tr>
+				</tbody>
+			</table>
+			<!-- END Class details -->
+
+			<!-- Class book controls -->
+
+			<!-- Subscription selector -->
+			<label>Choose the subscriptions</label>
+			<select id="subscription_id"></select>
+			<!-- END Subscription selector -->
+			
+			<!-- Book place selector - ONLY SHOWN WHEN THE CLASS ACCEPTS BOOKING PLACES (e.g. cycling, kangoo jumps) -->
+			<div id="place_to_book">
+				<label>Choose place in studio</label>
+				<select id="place"></select>
+			</div>
+			<!-- END Book place selector -->
+
+			<!-- Save booking button -->
+			<button onclick="saveBook()">Save booking</button>
+			<!-- END Save booking button -->
+
+			<!-- END Class book controls -->
+		</div>
+		<!-- END Book class form -->
+
+		<!-- JS Dependencies -->
+		<!-- jQuery -->
+		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		
+		<!-- Trancend api helper -->
+		<!-- <script type="text/javascript" src="../Version3/public/helpers/user.api.js"></script> -->
+		<script type="text/javascript" src="https://stage.project-trancend.com/helpers/user.api.js"></script>
+
+		<!-- Custom code for integration, calling etc.. -->
+		<script type="text/javascript">
+			// instantiate trancend connector for instance *stage.project-trancend.com*
+			var tcd = new trancendMemberConnector("stage");
+
+ 			/**
+			 * Checks if the user is logged in. If it is, it will show user data.
+ 			 */
+			function checkLogin() {
+				// Calling Trancend connector user logged method
+				var isLogged = tcd.isUserLogged();
+				if(!isLogged) { // User is NOT logged
+					$('#user_login').show(); // Showing login form..
+					$('#user_logged').hide(); // Hiding other user info..
+				} else {
+					var userData = tcd.getUserData();
+					$('#user').html("Hello, "+userData.user_data.full_name);
+					$('#user_login').hide(); // Hiding login form..
+					$('#user_logged').show(); // Showing other user info..
+
+					getBookingHistory(); // Getting book history..
+					getSubscriptionsHistory(); // Getting subscription history..
+					getSchedule(); // Getting schedule..
+					resetFields(); // Resetting booking fields..
+				}
+			}
+
+			/**
+			 * Resets fields for booking.
+ 			 */
+			function resetFields() {
+				$('#class_id').val("");
+				$('#subscription_id').val("");
+				$('#place').val("");
+				$('#book_class_form').hide();
+			}
+
+			/**
+			 * Gets and shows booking history ordered by date descending.
+ 			 */
+			function getBookingHistory() {
+				// Setting sorting parameters..
+				var params = {
+					sidx: "date",
+					sord: "desc"
+				};
+
+				// Calling Trancend connector booking history method using the params given above..
+				var book_history = tcd.getBookHistory(params);
+
+				// We iterate through each row given and then add them to the table after the foreach call..
+				var toReplace = "";
+				$.each(book_history.rows, function(key, val) {
+					toReplace += "<tr>";
+					toReplace += "<td>"+val.cell.name+" ("+val.cell.date+")</td>";
+					toReplace += "<td>"+val.cell.status+"</td>";
+
+					// If the status_code is 1 or 3 (active or waitlist), the user can cancel the booking so we add that control..
+					if(val.cell.status_code == 1 || val.cell.status_code == 3) {
+						toReplace += "<td><button onclick='cancelBook(\""+val.cell.cancel_code+"\")'>Cancel book</button></td>";
+					} else {
+						toReplace += "<td>&nbsp;</td>";
+					}
+					toReplace += "</tr>";
+				});
+
+				// Finally we add all the rows to the table.
+				$('#history').html(toReplace);
+			}
+
+			/**
+			 * Gets and shows subscription history ordered by start_date descending.
+ 			 */
+			function getSubscriptionsHistory() {
+				// Setting sorting parameters..
+				var params = {
+					sidx: "start_date",
+					sord: "desc"
+				};
+
+				// Calling Trancend connector subscription history method using the params given above..
+				var subs_history = tcd.getSubscriptionHistory(params);
+
+				// We iterate through each row given and then add them to the table after the foreach call..
+				var toReplace = "";
+				$.each(subs_history.rows, function(key, val) {
+					toReplace += "<tr>";
+					toReplace += "<td>"+val.cell.name+"</td>";
+					// We also set if a subscription is active or not..
+					toReplace += "<td>"+val.cell.availability+" ("+(val.cell.is_active == 1 ? "Active" : "Expired")+")</td>";
+					toReplace += "</tr>";
+				});
+
+				// Finally we add all the rows to the table.
+				$('#subscriptions').html(toReplace);
+			}
+
+			/**
+			 * Gets and sets the schedule classes in the dropdown based on the given parameters (from 04-06-2018 to 10-06-2018)..
+ 			 */
+			function getSchedule() {
+				// Setting fitering parameters..
+				var params = {
+					start_date: "04-06-2018",
+					start_end: "10-06-2018",
+				};
+
+				// Calling Trancend connector schedule method using the params given above..
+				var schedule = tcd.getSchedule(params);
+
+				// We iterate through each class and set them in the dropdown if the user "can_book".
+				var toReplace = "<option><option>";
+				$.each(schedule.days, function(key, val) {
+					$.each(val.classes, function(key2, val2) {
+						$.each(val2, function(key3, val3) {
+							if(val3.name != 'filler' && val3.can_book) {
+								toReplace += "<option value='"+val3.id+"'>"+val3.name+" ("+val3.date_readable+" "+val3.interval+")</option>";
+							}
+						});
+					});
+				});
+
+				// Finally we add all the classes to the dropdown
+				$('#class_id').html(toReplace);
+			}
+
+			/**
+			 * Gets class data and populates fields for place and subscription to save booking
+ 			 */
+			function bookClass() {
+				// We get class ID from HTML input..
+				var class_id = $('#class_id').val();
+
+				// We call Trancend connector get class details for book..
+				var class_data = tcd.getClassForBook(class_id);
+				
+				// Showing the book class form..
+				$('#book_class_form').show();
+
+				// Setting in the class details table the class name and date (for confirmation purposes)..
+				$('#class_name').html(class_data.class_data.name);
+				$('#class_date').html(class_data.class_data.date);
+
+				// We prepare the control for valid subscriptions
+				var subscription = "<option></option>";
+
+				// We iterate through valid subscriptions and add the ones that can be used..
+				$.each(class_data.subscriptions, function(key, val) {
+					subscription += "<option value='"+val.id+"'>"+val.display+"</option>";
+				});
+
+				// Finally we populate the subscription dropdown..
+				$('#subscription_id').html(subscription);
+
+				// We prepare the control for places available..
+				var place = "<option></option>";
+				$('#place_to_book').hide(); // We first hide the control..
+
+				$.each(class_data.places, function(key, val) { // We iterate through places..
+					$('#place_to_book').show(); // If at least one place is available, then we show the control..
+					place += "<option value='"+key+"'>"+val+"</option>";
+				});
+
+				// Finally we populate the dropdown with available places..
+				$('#place').html(place);
+			}
+
+			/**
+			 * Saves a booking for a given class
+ 			 */
+			function saveBook() {
+				// We get class_id, subscription_id and place from inputs in HTML.
+				var class_id = $('#class_id').val();
+				var subscription_id = $('#subscription_id').val();
+				var place = $('#place').val();
+
+				// We call the Trancend connector save booking method..
+				var returned = tcd.saveClassBooking(class_id, subscription_id, place);
+
+				// We check the response..
+				if(returned.success == 1) { // Booking successful!
+					alert('Booking successful!');
+					checkLogin(); // "Refreshing" UI..
+				} else { // Error..
+					alert(returned.message);
+				}
+
+			}
+
+			/**
+			 * Cancels the booking via the cancel_code
+ 			 */
+			function cancelBook(cancel_code) {
+				// We call the Trancend connector cancel booking method..
+				var response = tcd.cancelClassBooking(cancel_code);
+
+				// We check the response..
+				if(response.success == 1) { // Booking was successfully canceled..
+					alert('Booking canceled successfully!');
+					checkLogin(); // "Refreshing" UI..
+				} else { // Error..
+					alert('There was an error!');
+				}
+			} 
+
+			/**
+			 * Logs the user in..
+ 			 */
+			function login() {
+				// Getting input fields..
+				var username = $('#username').val();
+				var password = $('#password').val();
+
+				// Logging the user in using the Trancend connector login method..
+				var login = tcd.login(username, password);
+
+				// We check the response..
+				if(login.success == 1) { // Call was successful and user was logged in..
+					alert('Login successful!');
+				} else { // Error logging in, displaying message..
+					alert(login.message);
+				}
+				checkLogin();
+			}
+
+			/**
+			 * Logs the user out..
+ 			 */
+			function logout() {
+				// Calling Trancend connector logout method..
+				tcd.logout();
+
+				// "Refreshing" UI..
+				checkLogin();
+			}
+
+			// Check if user is logged in..
+			checkLogin();
+		</script>
+	</body>
+</html>
