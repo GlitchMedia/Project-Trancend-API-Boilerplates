@@ -5,3 +5,5 @@ For full documentation please visit: https://kb.glitch.ro/display/TCDRES/API+Gui
 
 **Attention! Nothing in this boilerplate is optimised as it is ment as an example!**
 **You can do your optimization at your own discretion!**
+
+*This connects by default to **https://stage.project-trancend.com/** *
