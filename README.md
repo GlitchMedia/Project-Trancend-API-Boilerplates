@@ -1,5 +1,5 @@
-# Project Trancend Member API Boilerplate
-Member API boilerplate for Project Trancend
+# Project Trancend API Boilerplates
+API boilerplates repository for Project Trancend
 
 For full documentation please visit: https://kb.glitch.ro/display/TCDRES/API+Guide
 
