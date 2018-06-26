@@ -83,6 +83,8 @@
 				<select id="class_id" onchange="bookClass()"></select>
 			</div>
 			<!-- END Book class -->
+
+			<hr />
 		</div>
 		
 		<!-- Book class form -->
@@ -132,11 +134,13 @@
 		<!-- Trancend api helper -->
 		<!-- <script type="text/javascript" src="../Version3/public/helpers/user.api.js"></script> -->
 		<script type="text/javascript" src="https://stage.project-trancend.com/helpers/user.api.js"></script>
+		<script type="text/javascript" src="https://trancend.dev/helpers/survey.api.js"></script>
 
 		<!-- Custom code for integration, calling etc.. -->
 		<script type="text/javascript">
 			// instantiate trancend connector for instance *stage.project-trancend.com*
 			var tcd = new trancendMemberConnector("stage");
+			var tcdSurvey = new trancendSurveyConnector("stage");
 
  			/**
 			 * Checks if the user is logged in. If it is, it will show user data.
@@ -147,11 +151,13 @@
 				if(!isLogged) { // User is NOT logged
 					$('#user_login').show(); // Showing login form..
 					$('#user_logged').hide(); // Hiding other user info..
+					$('#survey').hide(); // Hiding survey module..
 				} else {
 					var userData = tcd.getUserData();
 					$('#user').html("Hello, "+userData.user_data.full_name);
 					$('#user_login').hide(); // Hiding login form..
 					$('#user_logged').show(); // Showing other user info..
+					$('#survey').show(); // Showing survey module..
 
 					getBookingHistory(); // Getting book history..
 					getSubscriptionsHistory(); // Getting subscription history..

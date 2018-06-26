@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<!-- 
+	Trancend API integration boilerplate.
+	This is used to demonstrate the API integration using local storage and client-side only scripting.
+	The only external library that was used is jQuery.
+
+	author Glitch Media SRL
+
+	************************************************************************************
+	* Attention! Nothing in this boilerplate is optimised as it is ment as an example! *
+	* You can do your optimization at your own discretion! 							   *
+	************************************************************************************
+ -->
+<html>
+	<head>
+		<title>Project Trancend SURVEY API integration boilerplate</title>
+		<meta charset="utf-8" />
+		<meta name="author" content="Glitch Media" />
+	</head>
+	<body>
+		<div id="user_login">
+			<h1>Please login</h1>
+			<!-- User not logged in, showing login form -->
+			<label>Username</label>
+			<input type="text" name="text" id="username" />
+
+			<label>Password</label>
+			<input type="password" name="text" id="password" />
+			<button onclick="login()">Log In</button>
+		</div>
+		<div id="user_logged" style="display: none">
+			<!-- User data -->
+			<h1 id="user"></h1>
+
+			<!-- User logged in, showing other data -->
+			<button onclick="logout()">Log out</button>
+		</div>
+
+		<div id="survey" style="display: none">
+			<h1>Survey module</h1>
+
+			<!-- Survey -->
+			<div id="default_survey">
+				<h2>Default survey</h2>
+				The default survey link is: <b><span id="default_survey_link"></span></b>
+				<button onclick="takeSurvey()">Take survey</button>
+			</div>
+
+			<div id="surveyBody"></div>
+			<!-- END Survey -->
+		</div>
+
+		<!-- JS Dependencies -->
+		<!-- jQuery -->
+		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		
+		<!-- Trancend api helper -->
+		<script type="text/javascript" src="https://stage.project-trancend.com/helpers/user.api.js"></script>
+		<script type="text/javascript" src="https://trancend.dev/helpers/survey.api.js"></script>
+
+		<!-- Custom code for integration, calling etc.. -->
+		<script type="text/javascript">
+			// instantiate trancend connector for instance *stage.project-trancend.com*
+			var tcd = new trancendMemberConnector("stage");
+			var tcdSurvey = new trancendSurveyConnector("stage");
+
+			var currentSurveyLink = null;
+
+ 			/**
+			 * Checks if the user is logged in. If it is, it will show user data.
+ 			 */
+			function checkLogin() {
+				// Calling Trancend connector user logged method
+				var isLogged = tcd.isUserLogged();
+				if(!isLogged) { // User is NOT logged
+					$('#user_login').show(); // Showing login form..
+					$('#user_logged').hide(); // Hiding other user info..
+					$('#survey').hide(); // Hiding survey module..
+				} else {
+					var userData = tcd.getUserData();
+					$('#user').html("Hello, "+userData.user_data.full_name);
+					$('#user_login').hide(); // Hiding login form..
+					$('#user_logged').show(); // Showing other user info..
+					$('#survey').show(); // Showing survey module..
+
+					getDefaultSurvey(); // Getting default survey data..
+
+					if(userData.user_data.has_scale_active) { // Checking if user has an old survey active..
+						console.log("Found old survey. Fetching it..");
+						getOldSurvey();
+					} else {
+						console.log("No old survey");
+						$('#surveyBody').html('');
+					}
+				}
+			}
+
+			/**
+			 * Logs the user in..
+ 			 */
+			function login() {
+				// Getting input fields..
+				var username = $('#username').val();
+				var password = $('#password').val();
+
+				// Logging the user in using the Trancend connector login method..
+				var login = tcd.login(username, password);
+
+				// We check the response..
+				if(login.success == 1) { // Call was successful and user was logged in..
+					alert('Login successful!');
+				} else { // Error logging in, displaying message..
+					alert(login.message);
+				}
+				checkLogin();
+			}
+
+			/**
+			 * Logs the user out..
+ 			 */
+			function logout() {
+				// Calling Trancend connector logout method..
+				tcd.logout();
+
+				// "Refreshing" UI..
+				checkLogin();
+			}
+
+			/*******************
+			 * Survey example..
+ 			 *******************/
+
+ 			/**
+			 * Gets the current survey
+ 			 */
+ 			function getDefaultSurvey() {
+ 				// We call the connector feedback method..
+ 				var response = tcdSurvey.getDefaultFeedback();
+
+ 				// We save the current feedback link / code..
+ 				currentSurveyLink = response.message;
+
+ 				// We show it to the user..
+ 				$('#default_survey_link').html(response.message);
+ 			}
+
+ 			/**
+			 * Starts a new survey instance..
+ 			 */
+ 			function takeSurvey() {
+ 				var survey_link = currentSurveyLink;
+
+ 				// We call the connector with the correct survey link..
+ 				var surveyData = tcdSurvey.takeSurvey(survey_link);
+
+ 				// We print the survey data..
+ 				printSurvey(surveyData);
+ 			}
+
+ 			/**
+			 * Prints old survey data (if it was started before)
+ 			 */
+ 			function getOldSurvey() {
+ 				// We get current survey data..
+ 				var surveyData = tcdSurvey.takeSurvey();
+
+ 				// We print the survey..
+ 				printSurvey(surveyData);
+ 			}
+
+ 			/**
+			 * Prints the survey to DOM..
+ 			 */
+ 			function printSurvey(surveyData) {
+ 				var toShow = "<hr />";
+
+ 				// Survey title and description
+ 				toShow += "<h2>"+surveyData.scale.title+"</h2>";
+ 				toShow += surveyData.scale.description;
+
+ 				// We iterate through each survey item and print it to the user..
+ 				$.each(surveyData.items, function(key, val) {
+ 					// Item position and title..
+ 					toShow += "<h3>Question "+val.position+": "+val.title+"</h3>";
+
+ 					// If the item has answers predefined, we print them as radio buttons..
+ 					if(val.answers.length != 0) {
+ 						$.each(val.answers, function(key2, val2) {
+ 							var isChecked = ""; // We check if the user already responded to this question.
+ 							if(val2.id == val.actual_answer) { // If yes, we mark the answer as checked..
+ 								isChecked = "checked='checked'";
+ 							}
+ 							toShow += "<input type='radio' name='question_"+val.position+"' id='"+val.id+"' class='answer' value='"+val2.id+"' "+isChecked+" />"+val2.title+"<br />";
+ 						});
+ 					} else { // Else, if the item has no predefined answers, we print the response as a text box.. Again, if it already responded to it, we set the old value in the input field..
+ 						toShow += "<input type='text' name='question_"+val.position+"' id='"+val.id+"' class='answer' value='"+val.actual_value+"' />";
+ 					}
+
+ 					toShow += "<hr />";
+ 				});
+
+ 				// Survey controls..
+ 				toShow += "<button onclick='saveSurvey()'>Submit!</button>";
+ 				toShow += "<button onclick='cancelSurvey()'>Cancel survey!</button>";
+
+ 				// We print everything to DOM..
+ 				$('#surveyBody').html(toShow);
+ 			}
+
+ 			/**
+			 * Saves survey data..
+ 			 */
+ 			function saveSurvey() {
+ 				// We make the send object..
+ 				var toSend = {
+ 					items: []
+ 				}
+
+ 				// We iterate through each answer..
+ 				$.each($('.answer'), function(key, val) {
+ 					if($(val).is(':checked') || $(val).prop('type') == 'text') { // If the answer is checked or if its of type text, we save it..
+ 						var tmp = {
+ 							id: $(val).prop('id'),
+ 							actual_answer: val.value,
+ 							actual_value: val.value
+ 						}
+
+ 						toSend.items.push(tmp);
+ 					}
+ 				});
+
+ 				// We send it to server via connector..
+ 				var response = tcdSurvey.saveSurveyData(toSend);
+ 				if (response.success == 1) { // Response success..
+ 					alert("Survey saved successfully!");
+ 					checkLogin();
+ 				} else { // Response error..
+ 					alert("Error!");
+ 				}
+ 			}
+
+ 			/**
+			 * Cancels current survey instance..
+			 * ONLY WORKS ON type = 2 surveys.. (multiple use per user)
+ 			 */
+ 			function cancelSurvey() {
+ 				// We call the connector to delete..
+ 				var response = tcdSurvey.cancelCurrentSurvey();
+
+ 				if(response.success == 1) { // Success call..
+ 					alert('Survey canceled!');
+ 					checkLogin();
+ 				} else { // Error call, we display the error message..
+ 					alert(response.message);
+ 				}
+
+ 			}
+
+ 			// Check if user is logged in..
+			checkLogin();
+		</script>
+	</body>
+</html>
