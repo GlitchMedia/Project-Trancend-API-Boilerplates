@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<!-- 
+	Trancend API integration boilerplate.
+	This is used to demonstrate the API integration using local storage and client-side only scripting.
+	The only external library that was used is jQuery.
+
+	author Glitch Media SRL
+
+	************************************************************************************
+	* Attention! Nothing in this boilerplate is optimised as it is ment as an example! *
+	* You can do your optimization at your own discretion! 							   *
+	************************************************************************************
+ -->
+<html>
+	<head>
+		<title>Project Trancend SURVEY API integration boilerplate</title>
+		<meta charset="utf-8" />
+		<meta name="author" content="Glitch Media" />
+	</head>
+	<body>
+		<div id="user_login">
+			<h1>Please login</h1>
+			<!-- User not logged in, showing login form -->
+			<label>Username</label>
+			<input type="text" name="text" id="username" />
+
+			<label>Password</label>
+			<input type="password" name="text" id="password" />
+			<button onclick="login()">Log In</button>
+		</div>
+		<div id="user_logged" style="display: none">
+			<!-- User data -->
+			<h1 id="user"></h1>
+
+			<!-- User logged in, showing other data -->
+			<button onclick="logout()">Log out</button>
+		</div>
+
+		<div id="account" style="display: none">
+			<h1>Account functions</h1>
+			<table border="1">
+				<tr>
+					<th>Email</th>
+					<td id="email"></td>
+					<td>
+						<label>Type in new email</label>
+						<input type="email" name="newEmail" id="newEmail" />
+					</td>
+					<td>
+						<button onclick="changeEmail()">Change</button>
+					</td>
+				</tr>
+				<tr>
+					<th>Address</th>
+					<td id="address"></td>
+					<td>
+						<label>Type in new address</label>
+						<input type="text" name="newAddress" id="newAddress" />
+					</td>
+					<td>
+						<button onclick="changeAddress()">Change</button>
+					</td>
+				</tr>
+				<tr>
+					<th>Phone</th>
+					<td id="phone"></td>
+					<td>
+						<label>Type in new phone</label>
+						<input type="text" name="newPhone" id="newPhone" />
+					</td>
+					<td>
+						<button onclick="changePhone()">Change</button>
+					</td>
+				</tr>
+				<tr>
+					<th>Password</th>
+					<td id="password">HIDDEN</td>
+					<td>
+						<label>Type in new password</label>
+						<input type="password" name="newPassword" id="newPassword" />
+						<br />
+						<label>Confirm password</label>
+						<input type="password" name="newPassword_confirmation" id="newPassword_confirmation" />
+					</td>
+					<td>
+						<button onclick="changePassword()">Change</button>
+					</td>
+				</tr>
+			</table>
+
+			
+		</div>
+
+		<!-- JS Dependencies -->
+		<!-- jQuery -->
+		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		
+		<!-- Trancend api helper -->
+		<script type="text/javascript" src="https://stage.project-trancend.com/helpers/user.api.js"></script>
+		<script type="text/javascript" src="https://stage.project-trancend.com/helpers/account.api.js"></script>
+
+		<!-- Custom code for integration, calling etc.. -->
+		<script type="text/javascript">
+			// instantiate trancend connector for instance *stage.project-trancend.com*
+			var tcd = new trancendMemberConnector("stage");
+			var tcdMember = new trancendAccountConnector("stage");
+
+			var currentSurveyLink = null;
+
+ 			/**
+			 * Checks if the user is logged in. If it is, it will show user data.
+ 			 */
+			function checkLogin() {
+				// Calling Trancend connector user logged method
+				var isLogged = tcd.isUserLogged();
+				if(!isLogged) { // User is NOT logged
+					$('#user_login').show(); // Showing login form..
+					$('#user_logged').hide(); // Hiding other user info..
+					$('#account').hide(); // Hiding survey module..
+				} else {
+					var userData = tcd.getUserData();
+					$('#user').html("Hello, "+userData.user_data.full_name);
+					$('#user_login').hide(); // Hiding login form..
+					$('#user_logged').show(); // Showing other user info..
+					$('#account').show(); // Showing survey module..
+
+					// Showing userdata in table..
+					$('#email').html(userData.user_data.email);
+					$('#address').html(userData.user_data.address);
+					$('#phone').html(userData.user_data.phone);
+
+					// Resetting fields..
+					$('#newEmail').val('');
+					$('#newAddress').val('');
+					$('#newPhone').val('');
+					$('#newPassword').val('');
+					$('#newPassword_confirmation').val('');
+				}
+			}
+
+			/**
+			 * Logs the user in..
+ 			 */
+			function login() {
+				// Getting input fields..
+				var username = $('#username').val();
+				var password = $('#password').val();
+
+				// Logging the user in using the Trancend connector login method..
+				var login = tcd.login(username, password);
+
+				// We check the response..
+				if(login.success == 1) { // Call was successful and user was logged in..
+					alert('Login successful!');
+				} else { // Error logging in, displaying message..
+					alert(login.message);
+				}
+				checkLogin();
+			}
+
+			/**
+			 * Logs the user out..
+ 			 */
+			function logout() {
+				// Calling Trancend connector logout method..
+				tcd.logout();
+
+				// "Refreshing" UI..
+				checkLogin();
+			}
+
+			/******************************
+			 * Account functions example..
+ 			 ******************************/
+
+ 			/**
+ 			 * Changes the account email address using the library function
+ 			 */
+ 			function changeEmail() {
+ 				// Getting field to pass to connector..
+ 				var newEmail = $('#newEmail').val();
+
+ 				// Calling library method to "talk" to the server API..
+ 				var response = tcdMember.changeEmailAddress(newEmail);
+ 				if(response.success == 1) { // Success response..
+ 					alert("Email changed successfully!");
+ 					checkLogin();
+ 				} else { // Error response..
+ 					// We use the getReadableError to get the "human friendly" error
+ 					var errorReadable = tcdMember.getReadableError(response);
+ 					alert(errorReadable);
+ 				}
+ 			}
+
+ 			/**
+ 			 * Changes the account address using the library function
+ 			 */
+ 			function changeAddress() {
+ 				// Getting field to pass to connector..
+ 				var newAddress = $('#newAddress').val();
+
+ 				// Calling library method to "talk" to the server API..
+ 				var response = tcdMember.changeAddress(newAddress);
+ 				if(response.success == 1) { // Success response..
+ 					alert("Address changed successfully!");
+ 					checkLogin();
+ 				} else { // Error response..
+ 					// We use the getReadableError to get the "human friendly" error
+ 					var errorReadable = tcdMember.getReadableError(response);
+ 					alert(errorReadable);
+ 				}
+ 			}
+ 			
+ 			/**
+ 			 * Changes the account phone number using the library function
+ 			 */
+ 			function changePhone() {
+ 				// Getting field to pass to connector..
+ 				var newPhone = $('#newPhone').val();
+
+ 				// Calling library method to "talk" to the server API..
+ 				var response = tcdMember.changePhone(newPhone);
+ 				if(response.success == 1) { // Success response..
+ 					alert("Phone changed successfully!");
+ 					checkLogin();
+ 				} else { // Error response..
+ 					// We use the getReadableError to get the "human friendly" error
+ 					var errorReadable = tcdMember.getReadableError(response);
+ 					alert(errorReadable);
+ 				}
+ 			}
+
+ 			/**
+ 			 * Changes the account password using the library function
+ 			 */
+ 			function changePassword() {
+ 				// Getting fields to pass to connector..
+ 				var newPassword = $('#newPassword').val();
+ 				var newPassword_confirmation = $('#newPassword_confirmation').val();
+
+ 				// Calling library method to "talk" to the server API..
+ 				var response = tcdMember.changePassword(newPassword, newPassword_confirmation);
+ 				if(response.success == 1) { // Success response..
+ 					alert("Password changed successfully!");
+ 					checkLogin();
+ 				} else { // Error response..
+ 					// We use the getReadableError to get the "human friendly" error
+ 					var errorReadable = tcdMember.getReadableError(response);
+ 					alert(errorReadable);
+ 				}
+ 			}
+
+ 			// Check if user is logged in..
+			checkLogin();
+		</script>
+	</body>
+</html>
