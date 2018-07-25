@@ -20,13 +20,27 @@
 	<body>
 		<div id="user_login">
 			<h1>Please login</h1>
-			<!-- User not logged in, showing login form -->
+			<!-- User not logged in, showing login and password reset form -->
 			<label>Username</label>
-			<input type="text" name="text" id="username" />
+			<input type="text" name="username" id="username" />
 
 			<label>Password</label>
-			<input type="password" name="text" id="password" />
+			<input type="password" name="password" id="password" />
 			<button onclick="login()">Log In</button>
+
+			<h1>Password reset</h1>
+			<label>Email</label>
+			<input type="email" name="reset_email" id="reset_email" />
+			<button onclick="resetPassword()">Reset password</button>
+
+			<h1>Password reset via token <br /><small>(should be fetched from GET parameter "token")</small></h1>
+			<label>Token</label><br />
+			<input type="text" name="token" id="token" /><br />
+			<label>Password</label><br />
+			<input type="password" name="token" id="new_password" /><br />
+			<label>Password Confirmation</label><br />
+			<input type="password" name="token" id="new_password_confirmation" /><br />
+			<button onclick="changePasswordToken()">Change password</button>
 		</div>
 		<div id="user_logged" style="display: none">
 			<!-- User data -->
@@ -249,6 +263,41 @@
  					alert(errorReadable);
  				}
  			}
+
+ 			/**
+ 			 * Sends the user password reset email.
+ 			 */
+ 			function resetPassword() {
+ 				var email = $('#reset_email').val();
+ 				var response = tcdMember.resetUserPassword(email);
+
+ 				if(response.success == 1) { // Success response..
+ 					alert("You will receive the link to reset your password via your email!");
+ 				} else { // Error response..
+ 					// We use the getReadableError to get the "human friendly" error
+ 					var errorReadable = tcdMember.getReadableError(response);
+ 					alert(errorReadable);
+ 				}
+ 			}
+
+ 			/**
+ 			 * Changes the users password
+ 			 */
+ 			function changePasswordToken() {
+ 				var token = $('#token').val();
+ 				var password = $('#new_password').val();
+ 				var password_confirm = $('#new_password_confirmation').val();
+ 				var response = tcdMember.changePasswordReset(token, password, password_confirm);
+
+ 				if(response.success == 1) { // Success response..
+ 					alert("Password changed successfully! Please login!");
+ 				} else { // Error response..
+ 					// We use the getReadableError to get the "human friendly" error
+ 					var errorReadable = tcdMember.getReadableError(response);
+ 					alert(errorReadable);
+ 				}
+ 			}
+
 
  			// Check if user is logged in..
 			checkLogin();
