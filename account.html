@@ -54,6 +54,13 @@
 			<h1>Account functions</h1>
 			<table border="1">
 				<tr>
+					<th>ID Card number</th>
+					<td id="id_card"></td>
+					<td colspan="2">
+						<button onclick="changeKey()">Change</button>
+					</td>
+				</tr>
+				<tr>
 					<th>Email</th>
 					<td id="email"></td>
 					<td>
@@ -139,6 +146,7 @@
 					$('#account').show(); // Showing survey module..
 
 					// Showing userdata in table..
+					$('#id_card').html(userData.user_data.id_card_number);
 					$('#email').html(userData.user_data.email);
 					$('#address').html(userData.user_data.address);
 					$('#phone').html(userData.user_data.phone);
@@ -265,6 +273,22 @@
  			}
 
  			/**
+ 			 * Resets the check-in key (GATEKEEPER INSTANCES ONLY)
+ 			 */
+ 			function changeKey() {
+ 				var response = tcdMember.regenerateCheckinKey();
+ 				if(response.success == 1) { // Success response..
+ 					alert("Check-in key changed successfully!");
+ 					$('#id_card').html(response.key);
+ 					checkLogin();
+ 				} else { // Error response..
+ 					// We use the getReadableError to get the "human friendly" error
+ 					var errorReadable = tcdMember.getReadableError(response);
+ 					alert(errorReadable);
+ 				}
+ 			}
+
+ 			/**
  			 * Sends the user password reset email.
  			 */
  			function resetPassword() {
@@ -297,7 +321,6 @@
  					alert(errorReadable);
  				}
  			}
-
 
  			// Check if user is logged in..
 			checkLogin();
