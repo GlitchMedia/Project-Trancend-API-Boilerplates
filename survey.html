@@ -55,14 +55,15 @@
 		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 		
 		<!-- Trancend api helper -->
-		<script type="text/javascript" src="https://stage.project-trancend.com/helpers/user.api.js"></script>
-		<script type="text/javascript" src="https://stage.project-trancend.com/helpers/survey.api.js"></script>
+		<script type="text/javascript" src="https://demo.boogyman.club/helpers/user.api.js"></script>
+		<script type="text/javascript" src="https://demo.boogyman.club/helpers/survey.api.js"></script>
 
 		<!-- Custom code for integration, calling etc.. -->
 		<script type="text/javascript">
-			// instantiate trancend connector for instance *stage.project-trancend.com*
-			var tcd = new trancendMemberConnector("stage");
-			var tcdSurvey = new trancendSurveyConnector("stage");
+			// instantiate trancend connector for instance *demo.boogyman.club*
+			var is_boogyman_domain = true; // Set to false if url is using "project-trancend.com" domain.
+			var tcd = new trancendMemberConnector("demo", is_boogyman_domain);
+			var tcdSurvey = new trancendSurveyConnector("demo", is_boogyman_domain);
 
 			var currentSurveyLink = null;
 
